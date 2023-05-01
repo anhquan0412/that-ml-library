@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "that-ml-library"
+  site-url: "https://anhquan0412.github.io/that-ml-library"
+  description: "A useful package for EDA and quick ML model building"
+  repo-branch: main
+  repo-url: "https://github.com/anhquan0412/that-ml-library"
