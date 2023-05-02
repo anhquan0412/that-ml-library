@@ -89,8 +89,11 @@ def preprocessing_general(X_train:pd.DataFrame, # Training dataframe
                          ):
     """
     The main preprocessing functions, will perform:
+    
     - Fill missing values
+    
     - Scale numerical columns
+    
     - One-hot encode categorical columns
     
     Remember to put in the appropriate keyword arguments for each of the preprocessings mentioned above
