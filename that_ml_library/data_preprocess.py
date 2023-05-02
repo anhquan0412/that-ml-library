@@ -14,7 +14,7 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 
-# %% ../nbs/01_data_preprocess.ipynb 6
+# %% ../nbs/01_data_preprocess.ipynb 5
 def process_missing_values(X_train:pd.DataFrame, # Training dataframe
                            X_test:pd.DataFrame=None, # Testing dataframe
                            missing_cols:list|str=[], # A column name having missing values, or a list of such columns
@@ -35,7 +35,7 @@ def process_missing_values(X_train:pd.DataFrame, # Training dataframe
         if X_test is not None: X_test[c] = imp.transform(X_test[c].values.reshape(-1,1)).flatten()
     return X_train,X_test
 
-# %% ../nbs/01_data_preprocess.ipynb 11
+# %% ../nbs/01_data_preprocess.ipynb 9
 def scale_num_cols(X_train:pd.DataFrame, # Training dataframe
                    X_test:pd.DataFrame=None, # Testing dataframe
                    num_cols:list|str=[], # Name of the numerical column, or a list of such columns
@@ -59,7 +59,7 @@ def scale_num_cols(X_train:pd.DataFrame, # Training dataframe
         if X_test is not None: X_test[c] = imp.transform(X_test[c].values.reshape(-1,1)).flatten()
     return X_train,X_test
 
-# %% ../nbs/01_data_preprocess.ipynb 15
+# %% ../nbs/01_data_preprocess.ipynb 12
 def one_hot_cat(X_train:pd.DataFrame, # Training dataframe
                 X_test:pd.DataFrame=None, # Testing dataframe
                 cat_cols:list|str=[], # Name of the categorical columns (non-binary), or a list of such columns
@@ -81,7 +81,7 @@ def one_hot_cat(X_train:pd.DataFrame, # Training dataframe
         X_total = pd.get_dummies(X_total,columns=bi_cols,drop_first=True)
     return X_total.iloc[:n_train].copy(), X_total.iloc[n_train:].copy() if X_test is not None else None
 
-# %% ../nbs/01_data_preprocess.ipynb 19
+# %% ../nbs/01_data_preprocess.ipynb 15
 def preprocessing_general(X_train:pd.DataFrame, # Training dataframe
                           X_test:pd.DataFrame=None, # Testing dataframe
                           **kwargs, # Keyword arguments for processing missing values, scaling numerical columns and one-hot-encoding categorical columns
