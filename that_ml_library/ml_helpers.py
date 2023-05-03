@@ -3,7 +3,7 @@
 # %% ../nbs/02_ml_helpers.ipynb 4
 from __future__ import annotations
 from .utils import *
-# from that_ml_library.chart_plotting import *
+from .chart_plotting import plot_permutation_importances,plot_confusion_matrix
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_validate, train_test_split
 from sklearn.tree import DecisionTreeClassifier
@@ -44,7 +44,7 @@ def run_logistic_regression(X_trn:pd.DataFrame|np.ndarray, # Training features
 # %% ../nbs/02_ml_helpers.ipynb 7
 def run_multinomial_statmodel(X_trn:pd.DataFrame|np.ndarray, # Training features
                               y_trn:pd.Series|np.ndarray, # Training label
-                              add_constant=False # to add a constant column to X_trn
+                              add_constant=False # To add a constant column to X_trn
                              ):
     "Perform multinominal logit from statsmodel, then print results and classification report"
     if add_constant:
@@ -61,13 +61,13 @@ def run_multinomial_statmodel(X_trn:pd.DataFrame|np.ndarray, # Training features
 
 # %% ../nbs/02_ml_helpers.ipynb 9
 def run_sklearn_classification_model(model_name:str, # sklearn's Machine Learning model to try. Currently support DecisionTree,AdaBoost,RandomForest
-                                     model_params:dict, # a dictionary containing model's hyperparameters
+                                     model_params:dict, # A dictionary containing model's hyperparameters
                                      X_trn:pd.DataFrame|np.ndarray, # Training features
                                     y_trn:pd.Series|np.ndarray, # Training label
-                                     y_classes:list, # display names matching the labels (same order).
-                                     val_ratio=0.2, # validation set ratio for train_test_split
-                                     seed=42, # random seed
-                                     plot_fea_imp=True # to plot feature importances (permutation technique)
+                                     class_names:list, # List of names associated with the labels (same order); e.g. ['no','yes']
+                                     val_ratio=0.2, # Validation set ratio for train_test_split
+                                     seed=42, # Random seed
+                                     plot_fea_imp=True # To plot feature importances (permutation technique)
                                     ):
     np.random.seed(seed)
     if val_ratio is not None:
@@ -96,22 +96,22 @@ def run_sklearn_classification_model(model_name:str, # sklearn's Machine Learnin
 
     print('-'*30 + ' Train set ' + '-'*30)
     print(f'Log loss: {log_loss(y_trn,prob_trn)}')
-    print(classification_report(y_trn, pred_trn, target_names=y_classes))
+    print(classification_report(y_trn, pred_trn, target_names=class_names))
     
     if val_ratio is not None:
         pred_val = _model.predict(X_test)
         prob_val = _model.predict_proba(X_test)
         print('-'*30 + ' Test set ' + '-'*30)
         print(f'Log loss: {log_loss(y_test,prob_val)}')
-        print(classification_report(y_test, pred_val, target_names=y_classes))
+        print(classification_report(y_test, pred_val, target_names=class_names))
 
         print('-'*100)
-        df2 = pd.DataFrame({'Class': y_classes,
+        df2 = pd.DataFrame({'Class': class_names,
                             'True Distribution':pd.Series(y_test).value_counts(normalize=True).sort_index(),
                            'Prediction Distribution':pd.Series(pred_val).value_counts(normalize=True).sort_index()}
                           )
         print(df2)
-        plot_confusion_matrix(y_test,pred_val,y_classes)
+        plot_confusion_matrix(y_test,pred_val,class_names)
     
     if plot_fea_imp:
         # plot_feature_importances(_model.feature_importances_,trn_df.columns.values)
@@ -121,13 +121,14 @@ def run_sklearn_classification_model(model_name:str, # sklearn's Machine Learnin
 
 # %% ../nbs/02_ml_helpers.ipynb 11
 def tune_sklearn_classification_model(model_name:str, # sklearn's Machine Learning model to try. Currently support DecisionTree,AdaBoost,RandomForest,
-                                      param_grid:dict, # dictionary with parameters names (str) as keys and lists of parameter settings to try as values
+                                      param_grid:dict, # Dictionary with parameters names (str) as keys and lists of parameter settings to try as values
                                        X_trn:pd.DataFrame|np.ndarray, # Training features
                                       y_trn:pd.Series|np.ndarray, # Training label
                                       custom_cv=5, # sklearn's cross-validation splitting strategy
-                                      random_cv_iter=None, # number of parameter settings that are sampled. Use this if you want to do RandomizedSearchCV
-                                      seed=42, # random seed
-                                      rank_show=10 # number of ranks to show (descending order)
+                                      random_cv_iter=None, # Number of parameter settings that are sampled. Use this if you want to do RandomizedSearchCV
+                                      scoring='f1_macro', # Metric
+                                      seed=42, # Random seed
+                                      rank_show=10 # Number of ranks to show (descending order)
                                      ):
     "Perform either Sklearn's Grid Search or Randomized Search (based on random_cv_iter) of the model using param_grid"
     if model_name=='DT':
@@ -141,11 +142,12 @@ def tune_sklearn_classification_model(model_name:str, # sklearn's Machine Learni
         print('Unsupported model')
         return
     
-    search_cv,default_cv = do_param_search(X_trn,y_trn,_model,param_grid,cv=custom_cv,scoring=['f1_macro','accuracy'],random_cv_iter = random_cv_iter,seed=seed)
-    show_both_cv(search_cv,default_cv,'f1_macro',rank_show)
+    search_cv,default_cv = do_param_search(X_trn,y_trn,_model,param_grid,cv=custom_cv,scoring=scoring,random_cv_iter = random_cv_iter,seed=seed)
+    # Default to show results for the first metric
+    show_both_cv(search_cv,default_cv,scoring[0],rank_show)
     return search_cv
 
-# %% ../nbs/02_ml_helpers.ipynb 14
+# %% ../nbs/02_ml_helpers.ipynb 13
 def do_param_search(
     X_train,y_train,
     estimator,
@@ -157,6 +159,7 @@ def do_param_search(
     seed=42
     
 ):
+    scoring = val2list(scoring)
     search_cv,default_cv=None,None
     if random_cv_iter:
         search_cv = RandomizedSearchCV(estimator=estimator,
@@ -175,11 +178,11 @@ def do_param_search(
     if include_default:
         default_cv = cross_validate(estimator,X_train,y_train,scoring=scoring,cv=cv,n_jobs=-1,verbose=1,
                                    return_train_score=True)
-    return search_cv,default_cv
+    return search_cv.cv_results_,default_cv
         
 
 def summarize_cv_results(search_cv,scoring,top_n=10):
-    search_cv = pd.DataFrame(search_cv.cv_results_)
+    search_cv = pd.DataFrame(search_cv)
     search_cv = search_cv.sort_values(f'rank_test_{scoring}')
     for rec in search_cv[['params',f'mean_train_{scoring}',f'std_train_{scoring}',f'mean_test_{scoring}',f'std_test_{scoring}',f'rank_test_{scoring}']].values[:top_n]:
         print('-'*10)

@@ -34,7 +34,7 @@ def process_missing_values(X_train:pd.DataFrame, # Training dataframe
         imp = SimpleImputer(missing_values=missing_vals[i], strategy=strategies[i])
         X_train[c] = imp.fit_transform(X_train[c].values.reshape(-1,1)).flatten()
         if X_test is not None: X_test[c] = imp.transform(X_test[c].values.reshape(-1,1)).flatten()
-    return X_train,X_test
+    return X_train if X_test is None else (X_train,X_test)
 
 # %% ../nbs/01_data_preprocess.ipynb 9
 def scale_num_cols(X_train:pd.DataFrame, # Training dataframe
@@ -58,7 +58,7 @@ def scale_num_cols(X_train:pd.DataFrame, # Training dataframe
             raise ValueError('Unrecognized scaling method. Accept methods: minmax and standard')
         X_train[c] = imp.fit_transform(X_train[c].values.reshape(-1,1)).flatten()
         if X_test is not None: X_test[c] = imp.transform(X_test[c].values.reshape(-1,1)).flatten()
-    return X_train,X_test
+    return X_train if X_test is None else (X_train,X_test)
 
 # %% ../nbs/01_data_preprocess.ipynb 12
 def one_hot_cat(X_train:pd.DataFrame, # Training dataframe
@@ -80,7 +80,7 @@ def one_hot_cat(X_train:pd.DataFrame, # Training dataframe
         X_total = pd.get_dummies(X_total,columns=cat_cols,drop_first=False)
     if len(bi_cols):
         X_total = pd.get_dummies(X_total,columns=bi_cols,drop_first=True)
-    return X_total.iloc[:n_train].copy(), X_total.iloc[n_train:].copy() if X_test is not None else None
+    return X_total if X_test is None else (X_total.iloc[:n_train].copy(), X_total.iloc[n_train:].copy())
 
 # %% ../nbs/01_data_preprocess.ipynb 15
 def preprocessing_general(X_train:pd.DataFrame, # Training dataframe
@@ -98,7 +98,7 @@ def preprocessing_general(X_train:pd.DataFrame, # Training dataframe
     
     Remember to put in the appropriate keyword arguments for each of the preprocessings mentioned above
     """
-    X_train,X_test = process_missing_values(X_train,X_test,**kwargs)
-    X_train,X_test = scale_num_cols(X_train,X_test,**kwargs)
-    X_train,X_test = one_hot_cat(X_train,X_test,**kwargs)
-    return X_train,X_test
+    results = process_missing_values(X_train,X_test,**kwargs)
+    results = scale_num_cols(results,**kwargs) if X_test is None else scale_num_cols(*results,**kwargs)
+    results = one_hot_cat(results,**kwargs) if X_test is None else one_hot_cat(*results,**kwargs)
+    return results
