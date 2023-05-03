@@ -8,6 +8,9 @@
 pip install that_ml_library
 ```
 
+For dtreeviz library, you also need to install `graphviz`. Please follow
+the instruction [here](https://github.com/parrt/dtreeviz#installation)
+
 ## How to use
 
 ``` python
