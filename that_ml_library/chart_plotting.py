@@ -224,7 +224,7 @@ def plot_tree_dtreeviz(estimator, # sklearn's classifier
          orientation='LR',
          instance_orientation='LR',fancy=fancy,scale=scale)
 
-# %% ../nbs/03_chart_plotting.ipynb 24
+# %% ../nbs/03_chart_plotting.ipynb 27
 def plot_tree_sklearn(estimator, # sklearn's classifier
                       feature_names, # List of names of dependent variables (features)
                       class_names:list, # List of names associated with the labels (same order); e.g. ['no','yes']
@@ -240,7 +240,7 @@ def plot_tree_sklearn(estimator, # sklearn's classifier
     create_dir(_path)
     graph.render(_path/fname)
 
-# %% ../nbs/03_chart_plotting.ipynb 31
+# %% ../nbs/03_chart_plotting.ipynb 34
 def plot_feature_importances(importances, # feature importances from sklearn's **feature_importances_** variable
                              feature_names, # List of names of dependent variables (features)
                              figsize=(20,10), # Matplotlib figsize
@@ -254,7 +254,7 @@ def plot_feature_importances(importances, # feature importances from sklearn's *
     fea_imp_df.plot(kind='barh',figsize=figsize)
     return fea_imp_df
 
-# %% ../nbs/03_chart_plotting.ipynb 35
+# %% ../nbs/03_chart_plotting.ipynb 38
 def plot_permutation_importances(model, # sklearn tree model that has been trained
                                  X, # Training features
                                  y, # Training label
@@ -284,7 +284,7 @@ def plot_permutation_importances(model, # sklearn tree model that has been train
         fea_imp_dfs.append(fea_imp_df)
     return fea_imp_dfs
 
-# %% ../nbs/03_chart_plotting.ipynb 39
+# %% ../nbs/03_chart_plotting.ipynb 42
 def params_2D_heatmap(search_cv:dict, # A dict with keys as column headers and values as columns. Typically an attribute (**cv_results_**) of GridSearchCV or RandomizedSearchCV
                       param1:str, # Name of the first hyperparameter
                       param2:str, # Name of the second hyperparameter
@@ -315,7 +315,7 @@ def params_2D_heatmap(search_cv:dict, # A dict with keys as column headers and v
     plt.grid()
     plt.show()
 
-# %% ../nbs/03_chart_plotting.ipynb 44
+# %% ../nbs/03_chart_plotting.ipynb 47
 def params_3D_heatmap(search_cv:dict, # A dict with keys as column headers and values as columns. Typically an attribute (**cv_results_**) of GridSearchCV or RandomizedSearchCV
                       param1:str, # Name of the first hyperparameter
                       param2:str, # Name of the second hyperparameter
@@ -333,7 +333,7 @@ def params_3D_heatmap(search_cv:dict, # A dict with keys as column headers and v
                        log_x = log_param1, log_y=log_param2, log_z=log_param3)
     fig.show()
 
-# %% ../nbs/03_chart_plotting.ipynb 49
+# %% ../nbs/03_chart_plotting.ipynb 52
 def pdp_numerical_only(model, # sklearn tree model that has been trained
                        df:pd.DataFrame, # dataframe of data to perform plot
                        num_features, # A list of numerical features
@@ -373,7 +373,7 @@ def pdp_numerical_only(model, # sklearn tree model that has been trained
                             **common_params
         )
 
-# %% ../nbs/03_chart_plotting.ipynb 51
+# %% ../nbs/03_chart_plotting.ipynb 54
 def pdp_categorical_only(model, # sklearn tree model that has been trained
                          df:pd.DataFrame, # dataframe of data to perform plot
                          cat_feature:list, # A list of categorical features
@@ -420,7 +420,7 @@ def pdp_categorical_only(model, # sklearn tree model that has been trained
         displays[i].plot(ax=axes[i],pdp_lim={1: (0, ymax)})
         axes[i].set_title(class_names[i])
 
-# %% ../nbs/03_chart_plotting.ipynb 53
+# %% ../nbs/03_chart_plotting.ipynb 56
 def plot_ice_pair(model, # sklearn tree model that has been trained
                   df:pd.DataFrame, # dataframe of data to perform plot
                   pair_features:list, # a list of only 2 features
@@ -454,7 +454,7 @@ def plot_ice_pair(model, # sklearn tree model that has been trained
     )
     plt.setp(_display.deciles_vlines_, visible=False)
 
-# %% ../nbs/03_chart_plotting.ipynb 57
+# %% ../nbs/03_chart_plotting.ipynb 60
 def plot_confusion_matrix(y_true, # A list/numpy array of true labels 
                           y_pred, # A list/numpy array of predictions
                           labels=None # Display names matching the labels (same order).
@@ -465,7 +465,7 @@ def plot_confusion_matrix(y_true, # A list/numpy array of true labels
     disp.plot()
     plt.show()
 
-# %% ../nbs/03_chart_plotting.ipynb 58
+# %% ../nbs/03_chart_plotting.ipynb 61
 def draw_sankey(data, target,chart_name,save_name=None):
     PATH = Path('sk_reports')
     unique_source_target = list(pd.unique(data[['source', 'target']].values.ravel('K')))
