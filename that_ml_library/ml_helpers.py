@@ -44,7 +44,7 @@ def run_logistic_regression(X_trn:pd.DataFrame, # Training dataframe
 # %% ../nbs/02_ml_helpers.ipynb 7
 def run_multinomial_statmodel(X_trn:pd.DataFrame, # Training dataframe
                               y_trn:pd.Series|np.ndarray, # Training label
-                              add_constant=False # To add a constant column to X_trn
+                              add_constant=True # To add a constant column to X_trn
                              ):
     "Perform multinominal logit from statsmodel, then print results and classification report"
     if add_constant:
@@ -131,12 +131,12 @@ def tune_sklearn_classification_model(model_name:str, # sklearn's Machine Learni
                                       rank_show=10 # Number of ranks to show (descending order)
                                      ):
     "Perform either Sklearn's Grid Search or Randomized Search (based on random_cv_iter) of the model using param_grid"
-    if model_name=='DT':
+    if model_name=='DecisionTree':
         _model = DecisionTreeClassifier(random_state=seed)
     elif model_name=='AdaBoost':
         dt = DecisionTreeClassifier(random_state=seed)
         _model = AdaBoostClassifier(base_estimator= dt,random_state=seed,algorithm='SAMME')
-    elif model_name=='RF':
+    elif model_name=='RandomForest':
         _model = RandomForestClassifier(random_state=seed)
     else:
         print('Unsupported model')

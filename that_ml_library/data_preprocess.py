@@ -45,7 +45,9 @@ def scale_num_cols(X_train:pd.DataFrame, # Training dataframe
     "Scale numerical columns using Sklearn"
     if num_cols==[]:
         return X_train if X_test is None else (X_train,X_test)
+    print(num_cols)
     num_cols = val2list(num_cols)
+    print(num_cols)
     scale_methods = val2list(scale_methods,len(num_cols))
     X_train = X_train.copy()
     if X_test is not None: X_test = X_test.copy()

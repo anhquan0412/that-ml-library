@@ -17,6 +17,14 @@ you also need to install `graphviz`. Please follow the instruction
 
 ## How to use
 
-``` python
-#TODO
-```
+Please visit <https://anhquan0412.github.io/that-ml-library/> for
+tutorials and documentations
+
+## A word of caution
+
+This library should only be utilized solely for developing a proof of
+concept or prototype for your machine learning model with your specific
+dataset, with the aim of evaluating the model’s performance and
+interpretability. For deployment in a production environment, opt for a
+more organized methodology, such as
+<https://scikit-learn.org/stable/modules/compose.html#pipeline>

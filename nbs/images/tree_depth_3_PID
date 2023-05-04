@@ -1,0 +1,30 @@
+digraph Tree {
+node [shape=box, style="filled, rounded", color="black", fontname="helvetica"] ;
+edge [fontname="helvetica"] ;
+rankdir=LR ;
+0 [label=<Glucose &le; 0.776<br/>entropy = 0.933<br/>samples = 614<br/>value = [400, 214]<br/>class = no>, fillcolor="#f3c4a3"] ;
+1 [label=<BMI &le; 0.399<br/>entropy = 0.818<br/>samples = 515<br/>value = [384, 131]<br/>class = no>, fillcolor="#eeac7d"] ;
+0 -> 1 [labeldistance=2.5, labelangle=-45, headlabel="True"] ;
+2 [label=<Pregnancies &le; 0.147<br/>entropy = 0.244<br/>samples = 124<br/>value = [119, 5]<br/>class = no>, fillcolor="#e68641"] ;
+1 -> 2 ;
+3 [label=<entropy = 0.0<br/>samples = 70<br/>value = [70, 0]<br/>class = no>, fillcolor="#e58139"] ;
+2 -> 3 ;
+4 [label=<entropy = 0.445<br/>samples = 54<br/>value = [49, 5]<br/>class = no>, fillcolor="#e88e4d"] ;
+2 -> 4 ;
+5 [label=<Age &le; 0.158<br/>entropy = 0.907<br/>samples = 391<br/>value = [265, 126]<br/>class = no>, fillcolor="#f1bd97"] ;
+1 -> 5 ;
+6 [label=<entropy = 0.729<br/>samples = 211<br/>value = [168, 43]<br/>class = no>, fillcolor="#eca16c"] ;
+5 -> 6 ;
+7 [label=<entropy = 0.996<br/>samples = 180<br/>value = [97, 83]<br/>class = no>, fillcolor="#fbede2"] ;
+5 -> 7 ;
+8 [label=<BMI &le; 0.344<br/>entropy = 0.638<br/>samples = 99<br/>value = [16, 83]<br/>class = yes>, fillcolor="#5fb0ea"] ;
+0 -> 8 [labeldistance=2.5, labelangle=45, headlabel="False"] ;
+9 [label=<entropy = 0.0<br/>samples = 2<br/>value = [2, 0]<br/>class = no>, fillcolor="#e58139"] ;
+8 -> 9 ;
+10 [label=<Pregnancies &le; 0.382<br/>entropy = 0.595<br/>samples = 97<br/>value = [14, 83]<br/>class = yes>, fillcolor="#5aaee9"] ;
+8 -> 10 ;
+11 [label=<entropy = 0.722<br/>samples = 65<br/>value = [13, 52]<br/>class = yes>, fillcolor="#6ab6ec"] ;
+10 -> 11 ;
+12 [label=<entropy = 0.201<br/>samples = 32<br/>value = [1, 31]<br/>class = yes>, fillcolor="#3fa0e6"] ;
+10 -> 12 ;
+}
