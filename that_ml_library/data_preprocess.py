@@ -24,7 +24,7 @@ def process_missing_values(X_train:pd.DataFrame, # Training dataframe
                            **kwargs):
     "Process columns with missing values using Sklearn SimpleInputer"
     if missing_cols==[]:
-        return X_train,X_test
+        return X_train if X_test is None else (X_train,X_test)
     missing_cols = val2list(missing_cols)
     missing_vals = val2list(missing_vals,len(missing_cols))
     strategies = val2list(strategies,len(missing_cols))
@@ -44,7 +44,7 @@ def scale_num_cols(X_train:pd.DataFrame, # Training dataframe
                     **kwargs):
     "Scale numerical columns using Sklearn"
     if num_cols==[]:
-        return X_train,X_test
+        return X_train if X_test is None else (X_train,X_test)
     num_cols = val2list(num_cols)
     scale_methods = val2list(scale_methods,len(num_cols))
     X_train = X_train.copy()
@@ -68,7 +68,7 @@ def one_hot_cat(X_train:pd.DataFrame, # Training dataframe
                 **kwargs):
     "Perform 'get_dummies' on categorical columns"
     if cat_cols==[] and bi_cols==[]:
-        return X_train,X_test
+        return X_train if X_test is None else (X_train,X_test)
     cat_cols = val2list(cat_cols)
     bi_cols = val2list(bi_cols)
     n_train = X_train.shape[0]

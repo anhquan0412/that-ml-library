@@ -19,6 +19,7 @@ import plotly.graph_objects as go
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 import seaborn as sns
+import matplotlib
 
 # %% auto 0
 __all__ = ['get_vif', 'plot_learning_curve', 'plot_validation_curve', 'plot_tree_dtreeviz', 'plot_tree_sklearn',
@@ -224,7 +225,7 @@ def plot_tree_dtreeviz(estimator, # sklearn's classifier
          orientation='LR',
          instance_orientation='LR',fancy=fancy,scale=scale)
 
-# %% ../nbs/03_chart_plotting.ipynb 27
+# %% ../nbs/03_chart_plotting.ipynb 28
 def plot_tree_sklearn(estimator, # sklearn's classifier
                       feature_names, # List of names of dependent variables (features)
                       class_names:list, # List of names associated with the labels (same order); e.g. ['no','yes']
@@ -240,7 +241,7 @@ def plot_tree_sklearn(estimator, # sklearn's classifier
     create_dir(_path)
     graph.render(_path/fname)
 
-# %% ../nbs/03_chart_plotting.ipynb 34
+# %% ../nbs/03_chart_plotting.ipynb 36
 def plot_feature_importances(importances, # feature importances from sklearn's **feature_importances_** variable
                              feature_names, # List of names of dependent variables (features)
                              figsize=(20,10), # Matplotlib figsize
@@ -254,7 +255,7 @@ def plot_feature_importances(importances, # feature importances from sklearn's *
     fea_imp_df.plot(kind='barh',figsize=figsize)
     return fea_imp_df
 
-# %% ../nbs/03_chart_plotting.ipynb 38
+# %% ../nbs/03_chart_plotting.ipynb 40
 def plot_permutation_importances(model, # sklearn tree model that has been trained
                                  X, # Training features
                                  y, # Training label
@@ -284,7 +285,7 @@ def plot_permutation_importances(model, # sklearn tree model that has been train
         fea_imp_dfs.append(fea_imp_df)
     return fea_imp_dfs
 
-# %% ../nbs/03_chart_plotting.ipynb 42
+# %% ../nbs/03_chart_plotting.ipynb 44
 def params_2D_heatmap(search_cv:dict, # A dict with keys as column headers and values as columns. Typically an attribute (**cv_results_**) of GridSearchCV or RandomizedSearchCV
                       param1:str, # Name of the first hyperparameter
                       param2:str, # Name of the second hyperparameter
@@ -315,7 +316,7 @@ def params_2D_heatmap(search_cv:dict, # A dict with keys as column headers and v
     plt.grid()
     plt.show()
 
-# %% ../nbs/03_chart_plotting.ipynb 47
+# %% ../nbs/03_chart_plotting.ipynb 49
 def params_3D_heatmap(search_cv:dict, # A dict with keys as column headers and values as columns. Typically an attribute (**cv_results_**) of GridSearchCV or RandomizedSearchCV
                       param1:str, # Name of the first hyperparameter
                       param2:str, # Name of the second hyperparameter
@@ -333,22 +334,24 @@ def params_3D_heatmap(search_cv:dict, # A dict with keys as column headers and v
                        log_x = log_param1, log_y=log_param2, log_z=log_param3)
     fig.show()
 
-# %% ../nbs/03_chart_plotting.ipynb 52
+# %% ../nbs/03_chart_plotting.ipynb 54
 def pdp_numerical_only(model, # sklearn tree model that has been trained
-                       df:pd.DataFrame, # dataframe of data to perform plot
-                       num_features, # A list of numerical features
+                       X:pd.DataFrame, # dataframe to perform pdp
+                       num_features:list, # A list of numerical features
                        class_names:list, # List of names associated with the labels (same order); e.g. ['no','yes']
                        y_colors=None, # List of colors associated with class_names
                        ncols=2,
                        nrows=2,
                        figsize=(20,16)):
+    "Plot PDP plot for numerical dependent variables"
     common_params = {
     "subsample": 40,
     "n_jobs": -1,
     "grid_resolution": 100,
     "random_state": 42,
     }
-
+    
+    num_features = val2list(num_features)
     features_info = {
         # features of interest
         "features": num_features,
@@ -357,15 +360,18 @@ def pdp_numerical_only(model, # sklearn tree model that has been trained
         # information regarding categorical features
         "categorical_features": None,
     }
-
-    _, ax = plt.subplots(ncols=ncols, nrows=nrows, figsize=figsize, constrained_layout=True)
+    
+    if ncols*nrows!=len(num_features):
+        raise ValueError('Make sure the product of ncols and nrows is exactly the number of numerical features you want to plot')
+    _, ax = plt.subplots(ncols=ncols, nrows=nrows, squeeze=False,figsize=figsize,constrained_layout=True)
+    
     if y_colors is None:
-        y_colors = get_cmap('tab10').colors
+        y_colors = matplotlib.colormaps['tab10'].colors
 
     for i in range(len(class_names)):
         _display = PartialDependenceDisplay.from_estimator(
                             model,
-                            df,
+                            X,
                             **features_info,
                             target=i,
                             line_kw={"label": class_names[i],'color':y_colors[i]},
@@ -373,22 +379,22 @@ def pdp_numerical_only(model, # sklearn tree model that has been trained
                             **common_params
         )
 
-# %% ../nbs/03_chart_plotting.ipynb 54
+# %% ../nbs/03_chart_plotting.ipynb 61
 def pdp_categorical_only(model, # sklearn tree model that has been trained
-                         df:pd.DataFrame, # dataframe of data to perform plot
-                         cat_feature:list, # A list of categorical features
+                         X:pd.DataFrame, # dataframe to perform pdp
+                         cat_feature:list, # A single categorical feature
                          class_names:list, # List of names associated with the labels (same order); e.g. ['no','yes']
                          y_colors=None, # List of colors associated with class_names
                          ymax=0.5,
                          figsize=(20,8)):
-    
+    "Plot PDP plot for categorical dependent variables"
     common_params = {
     "subsample": 40,
     "n_jobs": 2,
     "grid_resolution": 100,
     "random_state": 42,
     }
-
+    
     features_info = {
         # features of interest
         "features": [cat_feature],
@@ -398,15 +404,15 @@ def pdp_categorical_only(model, # sklearn tree model that has been trained
         "categorical_features": [cat_feature],
     }
     if y_colors is None:
-        y_colors = get_cmap('tab10').colors
+        y_colors = matplotlib.colormaps['tab10'].colors
 
     displays=[]
     for i in range(len(class_names)): 
         _, ax = plt.subplots(figsize=(1,1))
 
         _display = PartialDependenceDisplay.from_estimator(
-            best_model,
-            df,
+            model,
+            X,
             **features_info,
             target=i,
             line_kw={"label": class_names[i],'color':y_colors[i]},
@@ -420,12 +426,13 @@ def pdp_categorical_only(model, # sklearn tree model that has been trained
         displays[i].plot(ax=axes[i],pdp_lim={1: (0, ymax)})
         axes[i].set_title(class_names[i])
 
-# %% ../nbs/03_chart_plotting.ipynb 56
+# %% ../nbs/03_chart_plotting.ipynb 65
 def plot_ice_pair(model, # sklearn tree model that has been trained
-                  df:pd.DataFrame, # dataframe of data to perform plot
+                  X:pd.DataFrame, # dataframe to perform ice
                   pair_features:list, # a list of only 2 features
                   class_idx, # index of the class to plot
                   figsize=(10,4)):
+    "Plot ICE plot from a pair of numerical feature"
     common_params = {
         "subsample": 40,
         "n_jobs": -1,
@@ -445,8 +452,8 @@ def plot_ice_pair(model, # sklearn tree model that has been trained
     _, ax = plt.subplots(ncols=3, figsize=figsize, constrained_layout=True)
 
     _display = PartialDependenceDisplay.from_estimator(
-        best_model,
-        df,
+        model,
+        X,
         **features_info,
         target=class_idx,
         ax=ax,
@@ -454,18 +461,19 @@ def plot_ice_pair(model, # sklearn tree model that has been trained
     )
     plt.setp(_display.deciles_vlines_, visible=False)
 
-# %% ../nbs/03_chart_plotting.ipynb 60
-def plot_confusion_matrix(y_true, # A list/numpy array of true labels 
-                          y_pred, # A list/numpy array of predictions
+# %% ../nbs/03_chart_plotting.ipynb 71
+def plot_confusion_matrix(y_true:list|np.ndarray, # A list/numpy array of true labels 
+                          y_pred:list|np.ndarray, # A list/numpy array of predictions
                           labels=None # Display names matching the labels (same order).
                          ):
+    "Simple function to plot the confusion matrix"
     cm = confusion_matrix(y_true, y_pred)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm,
                                   display_labels=labels)
     disp.plot()
     plt.show()
 
-# %% ../nbs/03_chart_plotting.ipynb 61
+# %% ../nbs/03_chart_plotting.ipynb 75
 def draw_sankey(data, target,chart_name,save_name=None):
     PATH = Path('sk_reports')
     unique_source_target = list(pd.unique(data[['source', 'target']].values.ravel('K')))

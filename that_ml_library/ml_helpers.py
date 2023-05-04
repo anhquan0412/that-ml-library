@@ -19,7 +19,7 @@ __all__ = ['run_logistic_regression', 'run_multinomial_statmodel', 'run_sklearn_
            'show_both_cv', 'get_adaboost_info']
 
 # %% ../nbs/02_ml_helpers.ipynb 5
-def run_logistic_regression(X_trn:pd.DataFrame|np.ndarray, # Training features
+def run_logistic_regression(X_trn:pd.DataFrame, # Training dataframe
                             y_trn:pd.Series|np.ndarray, # Training label
                             multi_class='multinomial', # sklearn's log reg multiclass option
                             solver='newton-cg', # sklearn's log reg solver option
@@ -42,7 +42,7 @@ def run_logistic_regression(X_trn:pd.DataFrame|np.ndarray, # Training features
     print(classification_report(y_trn,preds))
 
 # %% ../nbs/02_ml_helpers.ipynb 7
-def run_multinomial_statmodel(X_trn:pd.DataFrame|np.ndarray, # Training features
+def run_multinomial_statmodel(X_trn:pd.DataFrame, # Training dataframe
                               y_trn:pd.Series|np.ndarray, # Training label
                               add_constant=False # To add a constant column to X_trn
                              ):
@@ -62,7 +62,7 @@ def run_multinomial_statmodel(X_trn:pd.DataFrame|np.ndarray, # Training features
 # %% ../nbs/02_ml_helpers.ipynb 9
 def run_sklearn_classification_model(model_name:str, # sklearn's Machine Learning model to try. Currently support DecisionTree,AdaBoost,RandomForest
                                      model_params:dict, # A dictionary containing model's hyperparameters
-                                     X_trn:pd.DataFrame|np.ndarray, # Training features
+                                     X_trn:pd.DataFrame, # Training dataframe
                                     y_trn:pd.Series|np.ndarray, # Training label
                                      class_names:list, # List of names associated with the labels (same order); e.g. ['no','yes']
                                      val_ratio=0.2, # Validation set ratio for train_test_split
@@ -122,7 +122,7 @@ def run_sklearn_classification_model(model_name:str, # sklearn's Machine Learnin
 # %% ../nbs/02_ml_helpers.ipynb 11
 def tune_sklearn_classification_model(model_name:str, # sklearn's Machine Learning model to try. Currently support DecisionTree,AdaBoost,RandomForest,
                                       param_grid:dict, # Dictionary with parameters names (str) as keys and lists of parameter settings to try as values
-                                       X_trn:pd.DataFrame|np.ndarray, # Training features
+                                      X_trn:pd.DataFrame, # Training dataframe
                                       y_trn:pd.Series|np.ndarray, # Training label
                                       custom_cv=5, # sklearn's cross-validation splitting strategy
                                       random_cv_iter=None, # Number of parameter settings that are sampled. Use this if you want to do RandomizedSearchCV
@@ -142,6 +142,7 @@ def tune_sklearn_classification_model(model_name:str, # sklearn's Machine Learni
         print('Unsupported model')
         return
     
+    scoring = val2list(scoring)
     search_cv,default_cv = do_param_search(X_trn,y_trn,_model,param_grid,cv=custom_cv,scoring=scoring,random_cv_iter = random_cv_iter,seed=seed)
     # Default to show results for the first metric
     show_both_cv(search_cv,default_cv,scoring[0],rank_show)
