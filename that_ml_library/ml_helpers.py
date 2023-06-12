@@ -8,15 +8,17 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_validate, train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier,AdaBoostClassifier
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor,AdaBoostRegressor
 from sklearn.metrics import f1_score,accuracy_score,classification_report,log_loss
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+from yellowbrick.regressor import ResidualsPlot
 
 # %% auto 0
-__all__ = ['run_logistic_regression', 'run_multinomial_statmodel', 'run_sklearn_classification_model',
-           'tune_sklearn_classification_model', 'do_param_search', 'summarize_cv_results', 'summarize_default_cv',
-           'show_both_cv', 'get_adaboost_info']
+__all__ = ['run_logistic_regression', 'run_multinomial_statmodel', 'run_sklearn_model', 'tune_sklearn_model', 'do_param_search',
+           'summarize_cv_results', 'summarize_default_cv', 'show_both_cv', 'get_adaboost_info']
 
 # %% ../nbs/02_ml_helpers.ipynb 5
 def run_logistic_regression(X_trn:pd.DataFrame, # Training dataframe
@@ -40,6 +42,7 @@ def run_logistic_regression(X_trn:pd.DataFrame, # Training dataframe
     print('Log loss: ',log_loss(y_trn,prob_preds))
     print('-'*100)
     print(classification_report(y_trn,preds))
+    return model
 
 # %% ../nbs/02_ml_helpers.ipynb 7
 def run_multinomial_statmodel(X_trn:pd.DataFrame, # Training dataframe
@@ -58,89 +61,142 @@ def run_multinomial_statmodel(X_trn:pd.DataFrame, # Training dataframe
     print('Log loss: ',log_loss(y_trn,prob_preds))
     print('-'*100)
     print(classification_report(y_trn,np.argmax(prob_preds,axis=1)))
+    return logit_model
 
 # %% ../nbs/02_ml_helpers.ipynb 9
-def run_sklearn_classification_model(model_name:str, # sklearn's Machine Learning model to try. Currently support DecisionTree,AdaBoost,RandomForest
-                                     model_params:dict, # A dictionary containing model's hyperparameters
-                                     X_trn:pd.DataFrame, # Training dataframe
-                                    y_trn:pd.Series|np.ndarray, # Training label
-                                     class_names:list, # List of names associated with the labels (same order); e.g. ['no','yes']
-                                     val_ratio=0.2, # Validation set ratio for train_test_split
-                                     seed=42, # Random seed
-                                     plot_fea_imp=True # To plot feature importances (permutation technique)
-                                    ):
+def run_sklearn_model(model_name:str, # sklearn's Machine Learning model to try. Currently support DecisionTree,AdaBoost,RandomForest
+                      model_params:dict, # A dictionary containing model's hyperparameters
+                      X_trn:pd.DataFrame, # Training dataframe
+                      y_trn:pd.Series|np.ndarray, # Training label
+                      is_regression=False, # To use regression model or classification model
+                      class_names:list=None, # List of names associated with the labels (same order); e.g. ['no','yes']. For classification only
+                      test_split=None, # Test set split. If float: random split. If list of list: indices of train and test set. If None: skip splitting
+                      metric_funcs={}, # Dictionary of metric functions: {metric_name:metric_func}
+                      seed=42, # Random seed
+                      plot_fea_imp=True # To whether plot sklearn's feature importances. Set to False to skip the plot
+                    ):
     np.random.seed(seed)
-    if val_ratio is not None:
-        X_trn,X_test,y_trn,y_test = train_test_split(X_trn,y_trn,test_size=val_ratio,random_state=seed)
-    
+    if isinstance(test_split,float):
+        X_trn,X_test,y_trn,y_test = train_test_split(X_trn,y_trn,test_size=test_split,random_state=seed)
+    if isinstance(test_split,list) and len(test_split)==2 and isinstance(test_split[0],list) and isinstance(test_split[1],list):
+        X_test = X_trn.iloc[test_split[1]].copy()
+        y_test = y_trn[test_split[1]]
+        y_trn = y_trn[test_split[0]]
+        X_trn = X_trn.iloc[test_split[0]]
 
     if model_name=='DecisionTree':
-        _model = DecisionTreeClassifier(random_state=seed,**model_params)
+        if is_regression:
+            _model = DecisionTreeRegressor(random_state=seed,**model_params)
+        else:
+            _model = DecisionTreeClassifier(random_state=seed,**model_params)
     elif model_name=='AdaBoost':
         dt_params={k.split('__')[1]:v for k,v in model_params.items() if 'base_estimator' in k}
         abc_params={k:v for k,v in model_params.items() if 'base_estimator' not in k}        
         print(f'Decision Tree params: {dt_params}')
         print(f'AdaBoost params: {abc_params}')
-        dt = DecisionTreeClassifier(random_state=seed,**dt_params)
-        _model = AdaBoostClassifier(base_estimator=dt,random_state=seed,algorithm='SAMME',**abc_params)
+        if is_regression:
+            dt = DecisionTreeRegressor(random_state=seed,**dt_params)
+            _model = AdaBoostRegressor(base_estimator=dt,random_state=seed,algorithm='SAMME',**abc_params)
+        else:
+            dt = DecisionTreeClassifier(random_state=seed,**dt_params)
+            _model = AdaBoostClassifier(base_estimator=dt,random_state=seed,**abc_params)
     elif model_name=='RandomForest':
-        _model = RandomForestClassifier(random_state=seed,**model_params)
+        if is_regression:
+            _model = RandomForestRegressor(random_state=seed,**model_params)
+        else:
+            _model = RandomForestClassifier(random_state=seed,**model_params)
     else:
         print('Unsupported model')
         return
 
     _model = _model.fit(X_trn,y_trn)
-    
     pred_trn = _model.predict(X_trn)
-    prob_trn = _model.predict_proba(X_trn)
-
-    print('-'*30 + ' Train set ' + '-'*30)
-    print(f'Log loss: {log_loss(y_trn,prob_trn)}')
-    print(classification_report(y_trn, pred_trn, target_names=class_names))
     
-    if val_ratio is not None:
-        pred_val = _model.predict(X_test)
-        prob_val = _model.predict_proba(X_test)
-        print('-'*30 + ' Test set ' + '-'*30)
-        print(f'Log loss: {log_loss(y_test,prob_val)}')
-        print(classification_report(y_test, pred_val, target_names=class_names))
+    # For regression:
+    if is_regression:
+        print('-'*30 + ' Train set ' + '-'*30)
+        for k,v in metric_funcs.items():
+            print(f'{k}: {v(y_trn,pred_trn)}')
+        
+        if test_split is not None:
+            print('-'*30 + ' Test set ' + '-'*30)
+            pred_test = _model.predict(X_test)
+            for k,v in metric_funcs.items():
+                print(f'{k}: {v(y_test,pred_test)}')
+            
+            # plot residual plot
+            visualizer = ResidualsPlot(final_model, hist=False, qqplot=True,is_fitted=False)
+            visualizer.fit(X_trn, y_trn)
+            visualizer.score(X_test, y_test)
+            visualizer.show()
+        else:
+            visualizer = ResidualsPlot(final_model, hist=False, qqplot=True)
+            visualizer.score(X_trn, y_trn)
+            visualizer.show()
+    # For classification
+    else:
+        prob_trn = _model.predict_proba(X_trn)
+        print('-'*30 + ' Train set ' + '-'*30)
+        print(f'Log loss: {log_loss(y_trn,prob_trn)}')
+#         for k,v in metric_funcs.items():
+#             print(f'{k}: {v(y_trn,prob_trn)}')
+        print(classification_report(y_trn, pred_trn, target_names=class_names))
+        if test_split is not None:
+            print('-'*30 + ' Test set ' + '-'*30)
+            pred_test = _model.predict(X_test)
+            prob_test = _model.predict_proba(X_test)
+            print(f'Log loss: {log_loss(y_test,prob_test)}')
+            print(classification_report(y_test, pred_test, target_names=class_names))
+            print('-'*100)
+            df2 = pd.DataFrame({'Class': class_names,
+                                'True Distribution':pd.Series(y_test).value_counts(normalize=True).sort_index(),
+                               'Prediction Distribution':pd.Series(pred_test).value_counts(normalize=True).sort_index()}
+                              )
+            print(df2)
+            plot_confusion_matrix(y_test,pred_test,class_names)
 
-        print('-'*100)
-        df2 = pd.DataFrame({'Class': class_names,
-                            'True Distribution':pd.Series(y_test).value_counts(normalize=True).sort_index(),
-                           'Prediction Distribution':pd.Series(pred_val).value_counts(normalize=True).sort_index()}
-                          )
-        print(df2)
-        plot_confusion_matrix(y_test,pred_val,class_names)
-    
+
+#     _ = plot_permutation_importances(_model,X_trn,y_trn,scoring=['neg_root_mean_squared_error'])
     if plot_fea_imp:
-        # plot_feature_importances(_model.feature_importances_,trn_df.columns.values)
-        _ = plot_permutation_importances(_model,X_trn,y_trn)
+        plot_feature_importances(_model.feature_importances_,X_trn.columns.values)
     
-    return _model,prob_trn
+    return _model
 
 # %% ../nbs/02_ml_helpers.ipynb 11
-def tune_sklearn_classification_model(model_name:str, # sklearn's Machine Learning model to try. Currently support DecisionTree,AdaBoost,RandomForest,
-                                      param_grid:dict, # Dictionary with parameters names (str) as keys and lists of parameter settings to try as values
-                                      X_trn:pd.DataFrame, # Training dataframe
-                                      y_trn:pd.Series|np.ndarray, # Training label
-                                      custom_cv=5, # sklearn's cross-validation splitting strategy
-                                      random_cv_iter=None, # Number of parameter settings that are sampled. Use this if you want to do RandomizedSearchCV
-                                      scoring='f1_macro', # Metric
-                                      seed=42, # Random seed
-                                      rank_show=10 # Number of ranks to show (descending order)
-                                     ):
+def tune_sklearn_model(model_name:str, # sklearn's Machine Learning model to try. Currently support DecisionTree,AdaBoost,RandomForest,
+                      param_grid:dict, # Dictionary with parameters names (str) as keys and lists of parameter settings to try as values
+                      X_trn:pd.DataFrame, # Training dataframe
+                      y_trn:pd.Series|np.ndarray, # Training label
+                      is_regression=False, # Is it a regression problem, or classification?
+                      custom_cv=5, # sklearn's cross-validation splitting strategy
+                      random_cv_iter=None, # Number of parameter settings that are sampled. Use this if you want to do RandomizedSearchCV
+                      scoring=None, # Metric
+                      seed=42, # Random seed
+                      rank_show=10 # Number of ranks to show (descending order)
+                     ):
     "Perform either Sklearn's Grid Search or Randomized Search (based on random_cv_iter) of the model using param_grid"
-    if model_name=='DecisionTree':
-        _model = DecisionTreeClassifier(random_state=seed)
-    elif model_name=='AdaBoost':
-        dt = DecisionTreeClassifier(random_state=seed)
-        _model = AdaBoostClassifier(base_estimator= dt,random_state=seed,algorithm='SAMME')
-    elif model_name=='RandomForest':
-        _model = RandomForestClassifier(random_state=seed)
+    if is_regression:
+        if model_name=='DecisionTree':
+            _model = DecisionTreeRegressor(random_state=seed)
+        elif model_name=='AdaBoost':
+            dt = DecisionTreeRegressor(random_state=seed)
+            _model = AdaBoostRegressor(base_estimator= dt,random_state=seed)
+        elif model_name=='RandomForest':
+            _model = RandomForestRegressor(random_state=seed)
+        else:
+            print('Unsupported model')
+            return
     else:
-        print('Unsupported model')
-        return
+        if model_name=='DecisionTree':
+            _model = DecisionTreeClassifier(random_state=seed)
+        elif model_name=='AdaBoost':
+            dt = DecisionTreeClassifier(random_state=seed)
+            _model = AdaBoostClassifier(base_estimator= dt,random_state=seed,algorithm='SAMME')
+        elif model_name=='RandomForest':
+            _model = RandomForestClassifier(random_state=seed)
+        else:
+            print('Unsupported model')
+            return
     
     scoring = val2list(scoring)
     search_cv,default_cv = do_param_search(X_trn,y_trn,_model,param_grid,cv=custom_cv,scoring=scoring,random_cv_iter = random_cv_iter,seed=seed)
@@ -182,14 +238,22 @@ def do_param_search(
     return search_cv.cv_results_,default_cv
         
 
-def summarize_cv_results(search_cv,scoring,top_n=10):
+def summarize_cv_results(search_cv,scoring,num_split=5,top_n=10,show_split_scores=False):
     search_cv = pd.DataFrame(search_cv)
     search_cv = search_cv.sort_values(f'rank_test_{scoring}')
-    for rec in search_cv[['params',f'mean_train_{scoring}',f'std_train_{scoring}',f'mean_test_{scoring}',f'std_test_{scoring}',f'rank_test_{scoring}']].values[:top_n]:
+    for rec in search_cv[['params',f'mean_train_{scoring}',f'std_train_{scoring}',
+                          f'mean_test_{scoring}',f'std_test_{scoring}',f'rank_test_{scoring}']+
+                         [f'split{i}_train_{scoring}' for i in range(num_split)] +
+                         [f'split{i}_test_{scoring}' for i in range(num_split)]
+                        ].values[:top_n]:
         print('-'*10)
-        print(f'Rank {rec[-1]}')
+        print(f'Rank {rec[5]}')
         print(f'Params: {rec[0]}')
+        if show_split_scores:
+            print(f'Train scores: {[round(i,2) for i in rec[6:6+num_split]]}')
         print(f'Mean train score: {rec[1]:.3f} +- {rec[2]:.3f}')
+        if show_split_scores:
+            print(f'Test scores:  {[round(i,2) for i in rec[-num_split:]]}')
         print(f'Mean test score: {rec[3]:.3f} +- {rec[4]:.3f}')
 
 def summarize_default_cv(default_cv,s):
