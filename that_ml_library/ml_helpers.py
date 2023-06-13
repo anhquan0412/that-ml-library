@@ -3,7 +3,7 @@
 # %% ../nbs/02_ml_helpers.ipynb 4
 from __future__ import annotations
 from .utils import *
-from .chart_plotting import plot_permutation_importances,plot_confusion_matrix
+from .chart_plotting import plot_permutation_importances,plot_confusion_matrix,plot_residuals
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_validate, train_test_split
 from sklearn.tree import DecisionTreeClassifier
@@ -14,7 +14,6 @@ from sklearn.metrics import f1_score,accuracy_score,classification_report,log_lo
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-from yellowbrick.regressor import ResidualsPlot
 
 # %% auto 0
 __all__ = ['run_logistic_regression', 'run_multinomial_statmodel', 'run_sklearn_model', 'tune_sklearn_model', 'do_param_search',
@@ -125,14 +124,14 @@ def run_sklearn_model(model_name:str, # sklearn's Machine Learning model to try.
                 print(f'{k}: {v(y_test,pred_test)}')
             
             # plot residual plot
-            visualizer = ResidualsPlot(final_model, hist=False, qqplot=True,is_fitted=False)
-            visualizer.fit(X_trn, y_trn)
-            visualizer.score(X_test, y_test)
-            visualizer.show()
+            plot_residuals(_model,X_trn,y_trn,X_test,y_test,
+                           is_fit=True,
+                           qqplot=True)
         else:
-            visualizer = ResidualsPlot(final_model, hist=False, qqplot=True)
-            visualizer.score(X_trn, y_trn)
-            visualizer.show()
+            plot_residuals(_model,X_trn,y_trn,
+                           is_fit=True,
+                           qqplot=True)
+
     # For classification
     else:
         prob_trn = _model.predict_proba(X_trn)

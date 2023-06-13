@@ -20,12 +20,15 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 import seaborn as sns
 import matplotlib
+from scipy.stats import chi2_contingency
+from yellowbrick.regressor import ResidualsPlot
 
 # %% auto 0
-__all__ = ['get_vif', 'get_correlation_by_threshold', 'plot_learning_curve', 'plot_validation_curve', 'plot_tree_dtreeviz',
-           'plot_tree_sklearn', 'plot_feature_importances', 'plot_permutation_importances', 'params_2D_heatmap',
-           'params_3D_heatmap', 'pdp_numerical_only', 'pdp_categorical_only', 'plot_ice_pair', 'plot_confusion_matrix',
-           'draw_sankey']
+__all__ = ['get_vif', 'get_correlation_by_threshold', 'get_cat_correlation', 'plot_cat_correlation', 'plot_residuals',
+           'plot_prediction_distribution', 'plot_learning_curve', 'plot_validation_curve',
+           'plot_classification_tree_dtreeviz', 'plot_classification_tree_sklearn', 'plot_feature_importances',
+           'plot_permutation_importances', 'params_2D_heatmap', 'params_3D_heatmap', 'pdp_numerical_only',
+           'pdp_categorical_only', 'plot_ice_pair', 'plot_confusion_matrix', 'draw_sankey']
 
 # %% ../nbs/03_chart_plotting.ipynb 7
 def get_vif(df:pd.DataFrame, # dataframe to plot
@@ -38,7 +41,7 @@ def get_vif(df:pd.DataFrame, # dataframe to plot
     """
     if plot_corr:
         fig,ax = plt.subplots(figsize=(10,10))
-        dataplot = sns.heatmap(np.round(df.corr(),3), cmap="YlGnBu", annot=True)  
+        dataplot = sns.heatmap(df.corr(), fmt=f".2f",cmap="YlGnBu", annot=True)  
         plt.show()
 
     df_const = add_constant(df)    
@@ -47,13 +50,12 @@ def get_vif(df:pd.DataFrame, # dataframe to plot
     return vif
 
 # %% ../nbs/03_chart_plotting.ipynb 12
-def get_correlation_by_threshold(df, # DataFrame
+def get_correlation_by_threshold(df_corr, # Correlation DataFrame
                          min_thres=0.98 # minimum correlation to take
                         ):
     result_dic={}
-    _df_corr = df.corr()
-    for i,c in enumerate(_df_corr.columns.tolist()):
-        result = _df_corr.iloc[:i,i][np.abs(_df_corr.iloc[:i,i])>=min_thres].to_dict()
+    for i,c in enumerate(df_corr.columns.tolist()):
+        result = df_corr.iloc[:i,i][np.abs(df_corr.iloc[:i,i])>=min_thres].to_dict()
         result = {k:v for (k,v) in result.items() }
         if len(result)==0: continue
 #         print(f'{c}: {result}')
@@ -73,17 +75,75 @@ def _cramer_v(var1, var2):
     observation, min_dim = np.sum(crosstab), min(crosstab.shape) - 1
     return np.sqrt((chi2 / observation) / min_dim)
 
-def _get_cat_correlation(df_cat):
+# %% ../nbs/03_chart_plotting.ipynb 17
+def get_cat_correlation(df_cat, # DataFrame with categorical features that have been processed
+                       ):
     cramer_matrix = []
     cat_cols = df_cat.columns.tolist()
     for c in cat_cols:
         _tmp = []
         for c1 in cat_cols:
-            _tmp.append(cramer_v(df_cat[c],df_cat[c1]))
+            _tmp.append(_cramer_v(df_cat[c],df_cat[c1]))
         cramer_matrix.append(_tmp)
-    return cramer_matrix
+    cramer_df = pd.DataFrame(cramer_matrix,columns=df_cat.columns.values)
+    cramer_df.index = df_cat.columns.values
+    return cramer_df
 
-# %% ../nbs/03_chart_plotting.ipynb 25
+# %% ../nbs/03_chart_plotting.ipynb 18
+def plot_cat_correlation(df_cat, # DataFrame with categorical features that have been processed
+                        figsize=(10,10), # Matplotlib figsize
+                        ):
+    cramer_df = get_cat_correlation(df_cat)
+    fig,ax = plt.subplots(figsize=figsize)
+    dataplot = sns.heatmap(cramer_df, fmt=f".3f",cmap="YlGnBu", annot=True)  
+    plt.show()
+
+# %% ../nbs/03_chart_plotting.ipynb 29
+def plot_residuals(model, # Regression model
+                   X_trn, # Training dataframe
+                   y_trn, # Training label
+                   X_test=None, # Testing dataframe
+                   y_test=None, # Testing label
+                   is_fit=False, # Whether the regression model has been fitted on the train set
+                   qqplot=True, # To whether plot the qqplot
+                  ):
+    
+    # plot residual plot
+    if X_test is None:
+        visualizer = ResidualsPlot(model, hist=False, qqplot=qqplot,is_fitted=False)
+        if not is_fit:
+            visualizer.fit(X_trn, y_trn)
+        visualizer.show()
+    else:
+        visualizer = ResidualsPlot(model, hist=False, qqplot=qqplot)
+        if not is_fit:
+            visualizer.fit(X_trn, y_trn)
+        visualizer.score(X_test, y_test)
+        visualizer.show()
+
+# %% ../nbs/03_chart_plotting.ipynb 38
+def plot_prediction_distribution(y_true, # True label numpy array
+                                 y_pred, # Prediction numpy array
+                                 figsize=(15,5) # Matplotlib figsize
+                                ):
+    fig,axes = plt.subplots(1,2,figsize=figsize)    
+    df_plot1=pd.DataFrame()
+    df_plot1['value'] = y_pred
+    df_plot1['type'] = 'Predictions'
+    df_plot2=pd.DataFrame()
+    df_plot2['value'] = y_true
+    df_plot2['type'] = 'True values'
+    df_plot = pd.concat([df_plot1,df_plot2],axis=0)
+
+    print(f'MSE: {np.mean((y_true-y_pred)**2)}')
+    print(f'RMSE: {np.sqrt(np.mean((y_true-y_pred)**2))}')
+    print(f"MAE: {np.mean(np.abs(y_true-y_pred))}")
+
+    sns.histplot(df_plot, x="value", hue="type", element="step",ax=axes[0])
+    sns.kdeplot(df_plot, x="value", hue="type", ax=axes[1])
+    plt.show()
+
+# %% ../nbs/03_chart_plotting.ipynb 44
 def plot_learning_curve(
     estimator, # sklearn's classifier
     title, # Title of the chart
@@ -170,7 +230,7 @@ def plot_learning_curve(
         plt.savefig(_path/f'{title}.png')
     return plt
 
-# %% ../nbs/03_chart_plotting.ipynb 28
+# %% ../nbs/03_chart_plotting.ipynb 47
 def plot_validation_curve(
     estimator, # sklearn's classifier
     title, # Title of the chart
@@ -242,8 +302,8 @@ def plot_validation_curve(
         plt.savefig(_path/f'{title}.png')
     return plt
 
-# %% ../nbs/03_chart_plotting.ipynb 32
-def plot_tree_dtreeviz(estimator, # sklearn's classifier
+# %% ../nbs/03_chart_plotting.ipynb 52
+def plot_classification_tree_dtreeviz(estimator, # sklearn's classifier
                        X, # Training features
                        y, # Training label
                        target_name:str, # The (string) name of the target variable; e.g., for Titanic, it's "Survived"
@@ -263,8 +323,8 @@ def plot_tree_dtreeviz(estimator, # sklearn's classifier
          orientation='LR',
          instance_orientation='LR',fancy=fancy,scale=scale)
 
-# %% ../nbs/03_chart_plotting.ipynb 40
-def plot_tree_sklearn(estimator, # sklearn's classifier
+# %% ../nbs/03_chart_plotting.ipynb 58
+def plot_classification_tree_sklearn(estimator, # sklearn's classifier
                       feature_names, # List of names of dependent variables (features)
                       class_names:list, # List of names associated with the labels (same order); e.g. ['no','yes']
                       rotate=True, # To rotate the tree graph
@@ -279,7 +339,7 @@ def plot_tree_sklearn(estimator, # sklearn's classifier
     create_dir(_path)
     graph.render(_path/fname)
 
-# %% ../nbs/03_chart_plotting.ipynb 48
+# %% ../nbs/03_chart_plotting.ipynb 66
 def plot_feature_importances(importances, # feature importances from sklearn's **feature_importances_** variable
                              feature_names, # List of names of dependent variables (features)
                              figsize=(20,10), # Matplotlib figsize
@@ -291,9 +351,10 @@ def plot_feature_importances(importances, # feature importances from sklearn's *
     if top_n is not None:
         fea_imp_df = fea_imp_df.tail(top_n)
     fea_imp_df.plot(kind='barh',figsize=figsize)
+    plt.show()
     return fea_imp_df
 
-# %% ../nbs/03_chart_plotting.ipynb 52
+# %% ../nbs/03_chart_plotting.ipynb 70
 def plot_permutation_importances(model, # sklearn tree model that has been trained
                                  X, # Training features
                                  y, # Training label
@@ -323,7 +384,7 @@ def plot_permutation_importances(model, # sklearn tree model that has been train
         fea_imp_dfs.append(fea_imp_df)
     return fea_imp_dfs
 
-# %% ../nbs/03_chart_plotting.ipynb 56
+# %% ../nbs/03_chart_plotting.ipynb 74
 def params_2D_heatmap(search_cv:dict, # A dict with keys as column headers and values as columns. Typically an attribute (**cv_results_**) of GridSearchCV or RandomizedSearchCV
                       param1:str, # Name of the first hyperparameter
                       param2:str, # Name of the second hyperparameter
@@ -354,7 +415,7 @@ def params_2D_heatmap(search_cv:dict, # A dict with keys as column headers and v
     plt.grid()
     plt.show()
 
-# %% ../nbs/03_chart_plotting.ipynb 61
+# %% ../nbs/03_chart_plotting.ipynb 79
 def params_3D_heatmap(search_cv:dict, # A dict with keys as column headers and values as columns. Typically an attribute (**cv_results_**) of GridSearchCV or RandomizedSearchCV
                       param1:str, # Name of the first hyperparameter
                       param2:str, # Name of the second hyperparameter
@@ -372,7 +433,7 @@ def params_3D_heatmap(search_cv:dict, # A dict with keys as column headers and v
                        log_x = log_param1, log_y=log_param2, log_z=log_param3)
     fig.show()
 
-# %% ../nbs/03_chart_plotting.ipynb 66
+# %% ../nbs/03_chart_plotting.ipynb 83
 def pdp_numerical_only(model, # sklearn tree model that has been trained
                        X:pd.DataFrame, # dataframe to perform pdp
                        num_features:list, # A list of numerical features
@@ -417,7 +478,7 @@ def pdp_numerical_only(model, # sklearn tree model that has been trained
                             **common_params
         )
 
-# %% ../nbs/03_chart_plotting.ipynb 73
+# %% ../nbs/03_chart_plotting.ipynb 90
 def pdp_categorical_only(model, # sklearn tree model that has been trained
                          X:pd.DataFrame, # dataframe to perform pdp
                          cat_feature:list, # A single categorical feature
@@ -464,7 +525,7 @@ def pdp_categorical_only(model, # sklearn tree model that has been trained
         displays[i].plot(ax=axes[i],pdp_lim={1: (0, ymax)})
         axes[i].set_title(class_names[i])
 
-# %% ../nbs/03_chart_plotting.ipynb 77
+# %% ../nbs/03_chart_plotting.ipynb 93
 def plot_ice_pair(model, # sklearn tree model that has been trained
                   X:pd.DataFrame, # dataframe to perform ice
                   pair_features:list, # a list of only 2 features
@@ -499,7 +560,7 @@ def plot_ice_pair(model, # sklearn tree model that has been trained
     )
     plt.setp(_display.deciles_vlines_, visible=False)
 
-# %% ../nbs/03_chart_plotting.ipynb 83
+# %% ../nbs/03_chart_plotting.ipynb 99
 def plot_confusion_matrix(y_true:list|np.ndarray, # A list/numpy array of true labels 
                           y_pred:list|np.ndarray, # A list/numpy array of predictions
                           labels=None # Display names matching the labels (same order).
@@ -511,7 +572,7 @@ def plot_confusion_matrix(y_true:list|np.ndarray, # A list/numpy array of true l
     disp.plot()
     plt.show()
 
-# %% ../nbs/03_chart_plotting.ipynb 87
+# %% ../nbs/03_chart_plotting.ipynb 103
 def draw_sankey(data, target,chart_name,save_name=None):
     PATH = Path('sk_reports')
     unique_source_target = list(pd.unique(data[['source', 'target']].values.ravel('K')))
