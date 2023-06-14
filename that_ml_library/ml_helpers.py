@@ -3,7 +3,7 @@
 # %% ../nbs/02_ml_helpers.ipynb 4
 from __future__ import annotations
 from .utils import *
-from .chart_plotting import plot_permutation_importances,plot_confusion_matrix,plot_residuals
+from .chart_plotting import plot_permutation_importances,plot_confusion_matrix,plot_residuals,plot_feature_importances
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_validate, train_test_split
 from sklearn.tree import DecisionTreeClassifier
@@ -14,6 +14,7 @@ from sklearn.metrics import f1_score,accuracy_score,classification_report,log_lo
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+import re
 
 # %% auto 0
 __all__ = ['run_logistic_regression', 'run_multinomial_statmodel', 'run_sklearn_model', 'tune_sklearn_model', 'do_param_search',
@@ -171,7 +172,8 @@ def tune_sklearn_model(model_name:str, # sklearn's Machine Learning model to try
                       random_cv_iter=None, # Number of parameter settings that are sampled. Use this if you want to do RandomizedSearchCV
                       scoring=None, # Metric
                       seed=42, # Random seed
-                      rank_show=10 # Number of ranks to show (descending order)
+                      rank_show=10, # Number of ranks to show (descending order)
+                      show_split_scores=True, # To show both train and test split scores
                      ):
     "Perform either Sklearn's Grid Search or Randomized Search (based on random_cv_iter) of the model using param_grid"
     if is_regression:
@@ -200,7 +202,7 @@ def tune_sklearn_model(model_name:str, # sklearn's Machine Learning model to try
     scoring = val2list(scoring)
     search_cv,default_cv = do_param_search(X_trn,y_trn,_model,param_grid,cv=custom_cv,scoring=scoring,random_cv_iter = random_cv_iter,seed=seed)
     # Default to show results for the first metric
-    show_both_cv(search_cv,default_cv,scoring[0],rank_show)
+    show_both_cv(search_cv,default_cv,scoring[0],rank_show,show_split_scores)
     return search_cv
 
 # %% ../nbs/02_ml_helpers.ipynb 13
@@ -237,7 +239,8 @@ def do_param_search(
     return search_cv.cv_results_,default_cv
         
 
-def summarize_cv_results(search_cv,scoring,num_split=5,top_n=10,show_split_scores=False):
+def summarize_cv_results(search_cv,scoring,top_n=10,show_split_scores=False):
+    num_split = len([c for c in search_cv.keys() if re.search(r'split\d_test', c)])
     search_cv = pd.DataFrame(search_cv)
     search_cv = search_cv.sort_values(f'rank_test_{scoring}')
     for rec in search_cv[['params',f'mean_train_{scoring}',f'std_train_{scoring}',
@@ -261,8 +264,8 @@ def summarize_default_cv(default_cv,s):
     print(f"Mean train score: {round(default_cv[f'train_{s}'].mean(),3)} +- {round(default_cv[f'train_{s}'].std(),3)}")
     print(f"Mean test score: {round(default_cv[f'test_{s}'].mean(),3)} +- {round(default_cv[f'test_{s}'].std(),3)}")
 
-def show_both_cv(search_cv,default_cv,scoring,top_n=10):
-    summarize_cv_results(search_cv,scoring,top_n)
+def show_both_cv(search_cv,default_cv,scoring,top_n=10,show_split_scores=False):
+    summarize_cv_results(search_cv,scoring,top_n,show_split_scores)
     summarize_default_cv(default_cv,scoring)
 
     

@@ -25,10 +25,10 @@ from yellowbrick.regressor import ResidualsPlot
 
 # %% auto 0
 __all__ = ['get_vif', 'get_correlation_by_threshold', 'get_cat_correlation', 'plot_cat_correlation', 'plot_residuals',
-           'plot_prediction_distribution', 'plot_learning_curve', 'plot_validation_curve',
-           'plot_classification_tree_dtreeviz', 'plot_classification_tree_sklearn', 'plot_feature_importances',
-           'plot_permutation_importances', 'params_2D_heatmap', 'params_3D_heatmap', 'pdp_numerical_only',
-           'pdp_categorical_only', 'plot_ice_pair', 'plot_confusion_matrix', 'draw_sankey']
+           'plot_prediction_distribution', 'plot_learning_curve', 'plot_validation_curve', 'plot_tree_dtreeviz',
+           'plot_classification_tree_sklearn', 'plot_feature_importances', 'plot_permutation_importances',
+           'params_2D_heatmap', 'params_3D_heatmap', 'pdp_numerical_only', 'pdp_categorical_only', 'plot_ice_pair',
+           'plot_confusion_matrix', 'draw_sankey']
 
 # %% ../nbs/03_chart_plotting.ipynb 7
 def get_vif(df:pd.DataFrame, # dataframe to plot
@@ -303,11 +303,11 @@ def plot_validation_curve(
     return plt
 
 # %% ../nbs/03_chart_plotting.ipynb 52
-def plot_classification_tree_dtreeviz(estimator, # sklearn's classifier
+def plot_tree_dtreeviz(estimator, # sklearn's classifier
                        X, # Training features
                        y, # Training label
                        target_name:str, # The (string) name of the target variable; e.g., for Titanic, it's "Survived"
-                       class_names:list, # List of names associated with the labels (same order); e.g. ['no','yes']
+                       class_names:list=None, # List of names associated with the labels (same order); e.g. ['no','yes']
                        tree_index=0, # Index (from 0) of tree if model is an ensemble of trees like a random forest.
                        depth_range_to_display=None, # Range of depth levels to be displayed. The range values are inclusive
                        fancy=False, # To draw fancy tree chart (as opposed to simplified one)
@@ -330,7 +330,7 @@ def plot_classification_tree_sklearn(estimator, # sklearn's classifier
                       rotate=True, # To rotate the tree graph
                       fname='tmp' # Name of the png file to save(no extension)
                      ):
-    "Plot a decision tree using sklearn. Note that this will output a png file with fname instead of showing it in the notebook"
+    "Plot a decision tree classifier using sklearn. Note that this will output a png file with fname instead of showing it in the notebook"
     s = export_graphviz(estimator,out_file=None,feature_names=feature_names,filled=True,class_names=class_names,
                        special_characters=True,rotate=rotate,rounded=True)
     graph = graphviz.Source(s,format='png')
