@@ -26,23 +26,42 @@ def run_logistic_regression(X_trn:pd.DataFrame, # Training dataframe
                             multi_class='multinomial', # sklearn's log reg multiclass option
                             solver='newton-cg', # sklearn's log reg solver option
                             penalty=None, # sklearn's log reg penalty option
-                            max_iter=10000 # sklearn's log reg max iteration option
+                            max_iter=10000, # sklearn's log reg max iteration option
+                            return_coef=False # whether to return coefficients
                            ):
     "Perform Sklearn logistic regression, then print coefficients and classification report"
     model = LogisticRegression(random_state=0, multi_class=multi_class, 
                                penalty=penalty, solver=solver,max_iter=max_iter).fit(X_trn, y_trn)
     preds = model.predict(X_trn)
     prob_preds = model.predict_proba(X_trn)
-    print('-'*100)
-    print('Intercept: \n', model.intercept_)
-    print('Coefficients: \n', model.coef_)
-    print('Coefficients exp :\n',np.exp(model.coef_))
+    
+    df_print={}
+    coefs = list(model.coef_[0])
+    if hasattr(model,'feature_names_in_') and model.feature_names_in_ is not None:
+        df_print['Features']=['Intercept']+list(model.feature_names_in_)
+#         for a,b in zip(model.feature_names_in_,coefs):
+#             print(f'{a}: {b:.5f}')
+    else:
+        df_print['Features']=['Intercept']+ [f'feature_{i+1}' for i in range(len(coefs))]
 
+    df_print['Coefficients'] = list(model.intercept_) + coefs
+    
+#     print('Coefficients exp ')
+    coefs_exp = list(np.exp(model.coef_[0]))
+    df_print['Coefficients Exp'] = list(np.exp(model.intercept_)) + coefs_exp
+    
+    df_print = pd.DataFrame(data=df_print)
+    display(df_print)
+    
     print('-'*100)
     print('Log loss: ',log_loss(y_trn,prob_preds))
     print('-'*100)
     print(classification_report(y_trn,preds))
+    
+    if return_coef:
+        return model,df_print
     return model
+
 
 # %% ../nbs/02_ml_helpers.ipynb 7
 def run_multinomial_statmodel(X_trn:pd.DataFrame, # Training dataframe

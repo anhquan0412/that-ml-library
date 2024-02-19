@@ -77,9 +77,9 @@ def one_hot_cat(X_train:pd.DataFrame, # Training dataframe
     else:
         X_total = X_train.copy()
     if len(cat_cols):
-        X_total = pd.get_dummies(X_total,columns=cat_cols,drop_first=False)
+        X_total = pd.get_dummies(X_total,columns=cat_cols,drop_first=False,dtype=float)
     if len(bi_cols):
-        X_total = pd.get_dummies(X_total,columns=bi_cols,drop_first=True)
+        X_total = pd.get_dummies(X_total,columns=bi_cols,drop_first=True,dtype=float)
     return X_total if X_test is None else (X_total.iloc[:n_train].copy(), X_total.iloc[n_train:].copy())
 
 # %% ../nbs/01_data_preprocess.ipynb 20
