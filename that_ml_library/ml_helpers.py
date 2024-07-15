@@ -145,11 +145,9 @@ def run_sklearn_model(model_name:str, # sklearn's Machine Learning model to try.
             
             # plot residual plot
             plot_residuals(_model,X_trn,y_trn,X_test,y_test,
-                           is_fit=True,
                            qqplot=True)
         else:
             plot_residuals(_model,X_trn,y_trn,
-                           is_fit=True,
                            qqplot=True)
 
     # For classification
